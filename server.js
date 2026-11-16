@@ -4,77 +4,133 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
+const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-6';
 
-app.use(express.json());
+app.disable('x-powered-by');
+app.use(express.json({ limit: '64kb' }));
 app.use(express.static(__dirname));
 
-app.get('/', (req, res) => {
+app.get('/api/health', (_req, res) => {
+  res.json({
+    ok: true,
+    aiConfigured: Boolean(process.env.ANTHROPIC_API_KEY),
+    modelConfigured: Boolean(ANTHROPIC_MODEL)
+  });
+});
+
+app.get('/', (_req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-const SYSTEM_PROMPT = `You are MediGuide, a general medical information assistant embedded in a minimal chat app.
+const SYSTEM_PROMPT = `You are MediGuide, a health education assistant. You provide general, evidence-informed health information in clear, calm language.
 
-Scope of what you answer:
-- General symptoms commonly associated with a disease or condition the user names.
-- The general class/category of medication typically used for a condition (e.g. "antihistamines are commonly used for allergic reactions"), and, when asked, the generic composition or active ingredient(s) of a named medicine.
-- What a named medicine is generally used for, in plain terms.
+You can explain:
+- Commonly recognized symptoms and general information about health conditions.
+- What medicines are generally used for and their active ingredients.
+- Basic health terminology and how to prepare questions for a qualified clinician.
 
-Hard limits:
-- Never give specific dosages, dosing schedules, or administration instructions.
-- Never tell a specific person what they personally should take, or confirm/deny a diagnosis for them.
-- Always keep answers concise (short paragraphs or a short list), plain-language, and non-alarmist.
-- End every substantive answer with a brief, non-repetitive one-line reminder to consult a doctor or pharmacist — vary the wording naturally, don't template it.
-- If asked about dosage, self-treatment, or anything beyond general information, decline that specific part and redirect to a healthcare professional, while still answering the general-information part of the question if there is one.
-- If the question is unrelated to health/medicine, gently redirect back to what you can help with.
+Safety boundaries:
+- You are not a doctor and must not diagnose a person, assess their individual risk, or say that a particular treatment is right for them.
+- Never provide medication dosages, dosing schedules, or instructions for starting, stopping, or changing medication.
+- Do not replace professional care. Encourage the user to speak with a qualified healthcare professional for personal medical decisions.
+- If someone describes a possible emergency or severe symptoms, advise them to seek urgent local medical care now and contact local emergency services. Do not try to manage the emergency through chat.
+- For children, pregnancy, allergies, or existing medical conditions, direct personal questions to a qualified healthcare professional.
+- If asked something unrelated to health, politely explain your scope.
+- Do not invent sources, statistics, or certainty. State when information is uncertain.
+- Keep answers concise, structured, and understandable. Avoid frightening language.
 
-Tone: calm, clear, plain language, no jargon without explanation, no scare-mongering, no filler.`;
+End substantive answers with a short reminder that this is general information, not a diagnosis or personal medical advice.`;
 
 app.post('/api/chat', async (req, res) => {
-  if (!ANTHROPIC_API_KEY) {
-    return res.status(500).json({ error: 'Server is not configured with an API key.' });
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return res.status(503).json({
+      error: 'The AI service is not configured yet. The site owner needs to add ANTHROPIC_API_KEY in Render environment settings.'
+    });
   }
 
-  const { messages } = req.body;
-  if (!Array.isArray(messages) || messages.length === 0) {
-    return res.status(400).json({ error: 'messages array is required.' });
+  const messages = req.body && req.body.messages;
+  if (!Array.isArray(messages) || messages.length === 0 || messages.length > 20) {
+    return res.status(400).json({ error: 'Please send a conversation with between 1 and 20 messages.' });
   }
+
+  const validMessages = messages.every((message) =>
+    message &&
+    (message.role === 'user' || message.role === 'assistant') &&
+    typeof message.content === 'string' &&
+    message.content.trim().length > 0 &&
+    message.content.length <= 8000
+  );
+
+  if (!validMessages || messages[messages.length - 1].role !== 'user') {
+    return res.status(400).json({ error: 'The conversation format is invalid. Please try sending your question again.' });
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 45000);
 
   try {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
+      signal: controller.signal,
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': ANTHROPIC_API_KEY,
+        'x-api-key': process.env.ANTHROPIC_API_KEY,
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 1000,
+        model: ANTHROPIC_MODEL,
+        max_tokens: 1200,
         system: SYSTEM_PROMPT,
-        messages
+        messages: messages.slice(-20)
       })
     });
 
-    const data = await response.json();
+    const data = await response.json().catch(() => ({}));
 
     if (!response.ok) {
-      console.error('Anthropic API error:', data);
-      return res.status(response.status).json({ error: 'Upstream API error.' });
+      // Log only status and a provider request ID; never log keys or full request/response bodies.
+      console.error('Anthropic request failed:', {
+        status: response.status,
+        requestId: response.headers.get('request-id') || undefined,
+        errorType: data && data.error && data.error.type
+      });
+
+      if (response.status === 401 || response.status === 403) {
+        return res.status(502).json({ error: 'The AI provider rejected the server credentials. The site owner should check and rotate the API key in Render.' });
+      }
+      if (response.status === 429) {
+        return res.status(503).json({ error: 'The AI service is temporarily rate-limited or has reached its usage limit. Please try again later.' });
+      }
+      if (response.status === 400) {
+        return res.status(502).json({ error: 'The AI provider rejected this request. Please try a shorter or simpler question.' });
+      }
+      return res.status(502).json({ error: 'The AI provider is temporarily unavailable. Please try again in a little while.' });
     }
 
-    const text = (data.content || [])
-      .filter((b) => b.type === 'text')
-      .map((b) => b.text)
+    const answer = (data.content || [])
+      .filter((block) => block.type === 'text')
+      .map((block) => block.text)
       .join('\n')
       .trim();
 
-    res.json({ text });
-  } catch (err) {
-    console.error('Server error:', err);
-    res.status(500).json({ error: 'Something went wrong reaching the model.' });
+    if (!answer) {
+      return res.status(502).json({ error: 'The AI returned an empty answer. Please try asking in a different way.' });
+    }
+
+    return res.json({ text: answer });
+  } catch (error) {
+    const timedOut = error && error.name === 'AbortError';
+    console.error('MediGuide request failed:', timedOut ? 'upstream timeout' : (error && error.name) || 'unknown error');
+    return res.status(504).json({
+      error: timedOut
+        ? 'The AI took too long to respond. Please try again.'
+        : 'MediGuide could not reach the AI service. Check your connection and try again.'
+    });
+  } finally {
+    clearTimeout(timeout);
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`MediGuide server running on port ${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`MediGuide server listening on port ${PORT}`);
 });
