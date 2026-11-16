@@ -1,367 +1,218 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>mediguide</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#f5f8f7">
+<meta name="description" content="MediGuide offers clear, general health information and medicine education.">
+<title>MediGuide — Health information, made clearer</title>
 <style>
-  :root{
-    --bg: #FAFAF7;
-    --ink: #1B211E;
-    --ink-soft: #5B655F;
-    --line: #DDE3DE;
-    --accent: #2F6F62;
-    --accent-soft: #E7F0EC;
-    --user-bg: #F0F2EF;
-    --error: #B3451E;
-    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", "Helvetica Neue", Arial, sans-serif;
-  }
-  *{ box-sizing: border-box; }
-  html,body{
-    margin:0; padding:0; height:100%;
-    background: var(--bg);
-    color: var(--ink);
-    font-family: var(--font);
-  }
-  body{
-    display:flex; flex-direction:column;
-    min-height:100vh;
-  }
-
-  header{
-    padding: 22px 20px 16px;
-    border-bottom: 1px solid var(--line);
-    max-width: 720px;
-    width:100%;
-    margin: 0 auto;
-  }
-  .brand{
-    display:flex; align-items:baseline; gap:10px;
-  }
-  .brand h1{
-    font-size: 19px;
-    font-weight: 650;
-    margin:0;
-    letter-spacing: -0.01em;
-  }
-  .brand .dot{
-    width:7px; height:7px; border-radius:50%;
-    background: var(--accent);
-    display:inline-block;
-    margin-bottom: 1px;
-  }
-  .tagline{
-    margin: 6px 0 0;
-    font-size: 13.5px;
-    color: var(--ink-soft);
-    line-height:1.5;
-    max-width: 56ch;
-  }
-
-  main{
-    flex:1;
-    max-width: 720px;
-    width:100%;
-    margin: 0 auto;
-    padding: 20px 20px 140px;
-    display:flex;
-    flex-direction:column;
-  }
-
-  .empty{
-    margin-top: 8px;
-  }
-  .empty p{
-    font-size: 14px;
-    color: var(--ink-soft);
-    margin: 0 0 14px;
-  }
-  .suggestions{
-    display:flex; flex-wrap:wrap; gap:8px;
-  }
-  .chip{
-    border: 1px solid var(--line);
-    background: none;
-    color: var(--ink);
-    font-family: var(--font);
-    font-size: 13px;
-    padding: 8px 13px;
-    cursor:pointer;
-    border-radius: 3px;
-  }
-  .chip:hover{
-    border-color: var(--accent);
-    color: var(--accent);
-  }
-
-  .msg{
-    margin: 0 0 22px;
-    max-width: 100%;
-  }
-  .msg .role{
-    font-size: 11.5px;
-    color: var(--ink-soft);
-    margin-bottom: 5px;
-  }
-  .msg.user{
-    align-self:flex-end;
-  }
-  .msg-row{
-    display:flex;
-  }
-  .msg-row.user{ justify-content:flex-end; }
-  .bubble{
-    line-height: 1.55;
-    font-size: 14.5px;
-    white-space: pre-wrap;
-  }
-  .msg.assistant .bubble{
-    border-left: 2px solid var(--accent);
-    padding-left: 14px;
-    max-width: 66ch;
-  }
-  .msg.user .bubble{
-    background: var(--user-bg);
-    padding: 9px 14px;
-    border-radius: 3px;
-    max-width: 66ch;
-  }
-  .msg.error .bubble{
-    border-left: 2px solid var(--error);
-    padding-left: 14px;
-    color: var(--error);
-  }
-
-  .typing{
-    display:inline-flex;
-    gap:4px;
-    padding-left: 14px;
-    border-left: 2px solid var(--accent);
-  }
-  .typing span{
-    width:5px; height:5px; border-radius:50%;
-    background: var(--ink-soft);
-    animation: blink 1.2s infinite ease-in-out;
-  }
-  .typing span:nth-child(2){ animation-delay: .2s; }
-  .typing span:nth-child(3){ animation-delay: .4s; }
-  @keyframes blink{
-    0%, 80%, 100% { opacity:.25; }
-    40% { opacity:1; }
-  }
-
-  form.inputbar{
-    position: fixed;
-    bottom:0; left:0; right:0;
-    background: linear-gradient(to bottom, rgba(250,250,247,0), var(--bg) 30%);
-    padding: 24px 20px 22px;
-  }
-  .inputbar-inner{
-    max-width: 720px;
-    margin: 0 auto;
-    display:flex;
-    gap:10px;
-    align-items:flex-end;
-    border: 1px solid var(--line);
-    background: #fff;
-    border-radius: 4px;
-    padding: 6px 6px 6px 14px;
-  }
-  .inputbar-inner:focus-within{
-    border-color: var(--accent);
-  }
-  textarea{
-    flex:1;
-    border:none;
-    outline:none;
-    resize:none;
-    font-family: var(--font);
-    font-size: 14.5px;
-    line-height: 1.5;
-    padding: 8px 0;
-    max-height: 140px;
-    background: transparent;
-    color: var(--ink);
-  }
-  textarea::placeholder{ color: #A2ABA5; }
-  button.send{
-    border:none;
-    background: var(--accent);
-    color:#fff;
-    font-family: var(--font);
-    font-size: 13.5px;
-    font-weight: 600;
-    padding: 9px 16px;
-    border-radius: 3px;
-    cursor:pointer;
-    flex-shrink:0;
-  }
-  button.send:disabled{
-    background: #B7C4BE;
-    cursor:default;
-  }
-
-  footer{
-    text-align:center;
-    font-size: 11.5px;
-    color: #A2ABA5;
-    padding: 10px 0 4px;
-  }
-
-  @media (max-width:520px){
-    .msg.assistant .bubble, .msg.user .bubble{ max-width: 100%; }
-  }
+:root{color-scheme:light;--bg:#f5f8f7;--surface:#fff;--ink:#152b2a;--muted:#647875;--line:#e2ebe8;--brand:#147d70;--brand-dark:#0d6258;--mint:#e8f5f1;--blue:#edf3fa;--danger:#a33b36;--shadow:0 16px 48px rgba(28,66,59,.08);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 15% 0%,#e5f4ef 0,transparent 34%),var(--bg);color:var(--ink)}
+button,textarea{font:inherit}button{cursor:pointer}
+.app{max-width:1120px;margin:0 auto;padding:24px 28px 150px}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:52px}
+.brand{display:flex;align-items:center;gap:12px}.logo{width:42px;height:42px;border-radius:14px;background:var(--brand);display:grid;place-items:center;color:#fff;box-shadow:0 8px 20px #147d7030}.logo svg{width:24px;height:24px}.brand-name{font-size:19px;font-weight:760;letter-spacing:-.5px}.brand-sub{font-size:12px;color:var(--muted);margin-top:2px}
+.top-actions{display:flex;gap:9px}.soft-btn{border:1px solid var(--line);background:#ffffffc9;color:var(--ink);padding:10px 14px;border-radius:12px;font-size:13px;font-weight:650}.soft-btn:hover{border-color:#b5d5ce;background:#fff}
+.hero{max-width:760px;margin:0 auto 30px;text-align:center}.eyebrow{display:inline-flex;align-items:center;gap:7px;border:1px solid #d4e9e2;background:#f2faf7;color:var(--brand-dark);border-radius:999px;padding:7px 12px;font-size:12px;font-weight:700;letter-spacing:.02em}.pulse{width:7px;height:7px;background:#27a58f;border-radius:50%}
+h1{font-size:clamp(34px,5vw,54px);letter-spacing:-2px;line-height:1.07;margin:19px 0 13px}.hero p{margin:0 auto;color:var(--muted);font-size:16px;line-height:1.7;max-width:590px}
+.content{max-width:800px;margin:0 auto}.welcome{background:linear-gradient(135deg,#fff 0%,#f5fbf8 100%);border:1px solid var(--line);border-radius:24px;padding:26px;box-shadow:var(--shadow)}.welcome-title{font-size:15px;font-weight:750;margin:0 0 5px}.welcome-copy{font-size:13px;color:var(--muted);margin:0 0 18px;line-height:1.6}
+.quick-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:11px}.quick{display:flex;align-items:flex-start;gap:11px;text-align:left;background:#fff;border:1px solid var(--line);border-radius:16px;padding:15px 13px;min-height:84px;color:var(--ink);transition:.18s}.quick:hover{transform:translateY(-2px);border-color:#a9d3c9;box-shadow:0 8px 20px #164e4320}.quick-icon{width:34px;height:34px;display:grid;place-items:center;flex:0 0 34px;border-radius:11px;background:var(--mint);color:var(--brand)}.quick-icon svg{width:18px;height:18px}.quick strong{display:block;font-size:13px;margin:1px 0 4px}.quick small{display:block;color:var(--muted);font-size:11px;line-height:1.45}
+.thread{display:flex;flex-direction:column;gap:20px;margin:26px 0}.message{display:flex;gap:11px;align-items:flex-start;max-width:94%}.message.user{align-self:flex-end;flex-direction:row-reverse}.avatar{width:34px;height:34px;flex:0 0 34px;border-radius:12px;background:var(--mint);color:var(--brand);display:grid;place-items:center;font-size:12px;font-weight:800}.message.user .avatar{background:#e9eff8;color:#47668b}.message-body{min-width:0}.sender{font-size:11px;font-weight:750;color:var(--muted);margin:0 0 6px 2px}.bubble{background:#fff;border:1px solid var(--line);border-radius:4px 17px 17px 17px;padding:14px 16px;font-size:14px;line-height:1.7;white-space:pre-wrap;overflow-wrap:anywhere;box-shadow:0 5px 18px #193f3710}.message.user .bubble{background:#eaf5f2;border-color:#d8ebe5;border-radius:17px 4px 17px 17px}.message.error .bubble{border-color:#f0d4d1;background:#fff8f7;color:var(--danger)}
+.message-tools{display:flex;gap:8px;margin:8px 0 0 2px}.tiny-btn{border:0;background:transparent;color:var(--muted);font-size:11px;padding:4px 6px}.tiny-btn:hover{color:var(--brand)}
+.typing{display:flex;gap:5px;padding:18px}.typing i{width:6px;height:6px;border-radius:50%;background:#6a9990;animation:bounce 1s infinite}.typing i:nth-child(2){animation-delay:.15s}.typing i:nth-child(3){animation-delay:.3s}@keyframes bounce{0%,60%,100%{transform:translateY(0);opacity:.5}30%{transform:translateY(-5px);opacity:1}}
+.composer-wrap{position:fixed;bottom:0;left:0;right:0;padding:30px 20px 16px;background:linear-gradient(180deg,transparent 0%,#f5f8f7 25%);z-index:5}.composer{max-width:800px;margin:0 auto;background:#fff;border:1px solid #dbe7e3;border-radius:20px;box-shadow:0 12px 38px #214d4320;padding:10px}.composer:focus-within{border-color:#8fc9bb;box-shadow:0 0 0 4px #147d7010,0 12px 38px #214d4320}.composer textarea{display:block;width:100%;border:0;outline:0;resize:none;min-height:48px;max-height:130px;padding:10px 12px;color:var(--ink);font-size:14px;line-height:1.5;background:transparent}.composer textarea::placeholder{color:#9aa9a5}.composer-bottom{display:flex;align-items:center;justify-content:space-between;padding:3px 4px 2px 10px}.composer-hint{font-size:11px;color:#8a9a96}.send{display:flex;align-items:center;gap:8px;background:var(--brand);color:#fff;border:0;border-radius:12px;padding:10px 17px;font-size:13px;font-weight:750}.send:hover{background:var(--brand-dark)}.send:disabled{opacity:.55;cursor:not-allowed}.send svg{width:15px;height:15px}
+.disclaimer{max-width:800px;margin:12px auto 0;text-align:center;color:#84938f;font-size:10.5px;line-height:1.5}.status{font-size:11px;color:var(--muted);text-align:center;margin-top:8px;min-height:16px}
+.hidden{display:none!important}
+@media(max-width:650px){.app{padding:17px 15px 150px}.topbar{margin-bottom:40px}.brand-sub{display:none}.top-actions .soft-btn{padding:9px 10px}.hero{margin-bottom:24px}h1{letter-spacing:-1.4px}.hero p{font-size:14px}.welcome{padding:18px;border-radius:20px}.quick-grid{grid-template-columns:1fr}.quick{min-height:65px}.message{max-width:100%}.composer-wrap{padding:25px 12px 12px}.composer{border-radius:17px}}
 </style>
 </head>
 <body>
+<div class="app">
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 3v18M3 12h18"/><path d="M7 7h.01M17 17h.01" opacity=".0"/></svg></div>
+      <div><div class="brand-name">MediGuide</div><div class="brand-sub">Your health information companion</div></div>
+    </div>
+    <div class="top-actions">
+      <button class="soft-btn" id="copyLast" type="button" title="Copy the latest answer">Copy answer</button>
+      <button class="soft-btn" id="newChat" type="button">＋ New chat</button>
+    </div>
+  </header>
 
-<header>
-  <div class="brand"><span class="dot"></span><h1>MediGuide</h1></div>
-  <p class="tagline">General information on symptoms, medicine composition, and what a medicine is typically used for. Not a diagnosis — always confirm with a doctor or pharmacist.</p>
-</header>
+  <section class="hero" id="hero">
+    <div class="eyebrow"><span class="pulse"></span> GENERAL HEALTH INFORMATION</div>
+    <h1>Understand your health.<br>One question at a time.</h1>
+    <p>Clear, approachable explanations about symptoms, conditions and medicines — to help you have more informed conversations with a healthcare professional.</p>
+  </section>
 
-<main id="main">
-  <div class="empty" id="empty">
-    <p>Ask about a condition's symptoms, or a medicine's composition and use.</p>
-    <div class="suggestions">
-      <button class="chip" type="button">Symptoms of typhoid</button>
-      <button class="chip" type="button">What is paracetamol used for?</button>
-      <button class="chip" type="button">Composition of ORS</button>
-      <button class="chip" type="button">Symptoms of common cold vs flu</button>
+  <main class="content">
+    <section class="welcome" id="welcome">
+      <p class="welcome-title">What would you like to explore?</p>
+      <p class="welcome-copy">Choose a topic to get started, or type your own question below.</p>
+      <div class="quick-grid">
+        <button class="quick" type="button" data-prompt="What are some common symptoms of seasonal allergies?"><span class="quick-icon">⌕</span><span><strong>Search symptoms</strong><small>Explore common signs and terms</small></span></button>
+        <button class="quick" type="button" data-prompt="Explain what paracetamol is generally used for and its active ingredient. Do not give dosage advice."><span class="quick-icon">✚</span><span><strong>Medicine guide</strong><small>Learn about common medicines</small></span></button>
+        <button class="quick" type="button" data-prompt="Give me a beginner-friendly overview of how seasonal flu differs from the common cold."><span class="quick-icon">⌕</span><span><strong>Explore conditions</strong><small>Understand health topics</small></span></button>
+      </div>
+    </section>
+    <section class="thread" id="thread" aria-live="polite"></section>
+    <div class="status" id="status" role="status"></div>
+  </main>
+</div>
+
+<form class="composer-wrap" id="form">
+  <div class="composer">
+    <textarea id="input" rows="1" maxlength="8000" placeholder="Ask a general health question…" aria-label="Your question"></textarea>
+    <div class="composer-bottom">
+      <span class="composer-hint">Enter to send · Shift + Enter for a new line</span>
+      <button class="send" id="sendBtn" type="submit">Ask MediGuide <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="m22 2-7 20-4-9-9-4Z"/></svg></button>
     </div>
   </div>
-  <div id="thread"></div>
-</main>
-
-<form class="inputbar" id="form">
-  <div class="inputbar-inner">
-    <textarea id="input" rows="1" placeholder="Ask about a symptom, disease, or medicine…"></textarea>
-    <button class="send" type="submit" id="sendBtn">Ask</button>
-  </div>
+  <p class="disclaimer">MediGuide provides general educational information, not diagnosis or personal medical advice. For personal concerns, speak with a qualified healthcare professional. If you may be experiencing an emergency, seek urgent local medical care.</p>
 </form>
 
 <script>
 const thread = document.getElementById('thread');
-const empty = document.getElementById('empty');
+const welcome = document.getElementById('welcome');
+const hero = document.getElementById('hero');
 const form = document.getElementById('form');
 const input = document.getElementById('input');
 const sendBtn = document.getElementById('sendBtn');
-
+const statusEl = document.getElementById('status');
+const copyLast = document.getElementById('copyLast');
 let history = [];
+let lastAnswer = '';
+let lastQuestion = '';
+let busy = false;
 
-function scrollToBottom(){
-  window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-}
-
+function scrollToLatest(){ window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'}); }
 function addMessage(role, text){
-  empty.style.display = 'none';
-  const msg = document.createElement('div');
-  msg.className = 'msg ' + role;
-  const row = document.createElement('div');
-  row.className = 'msg-row ' + role;
-
-  const inner = document.createElement('div');
-  const label = document.createElement('div');
-  label.className = 'role';
-  label.textContent = role === 'user' ? 'You' : 'MediGuide';
+  welcome.classList.add('hidden');
+  hero.classList.add('hidden');
+  const item = document.createElement('article');
+  item.className = 'message ' + role;
+  const avatar = document.createElement('div');
+  avatar.className = 'avatar';
+  avatar.textContent = role === 'user' ? 'YOU' : role === 'error' ? '!' : 'M';
+  const body = document.createElement('div');
+  body.className = 'message-body';
+  const sender = document.createElement('div');
+  sender.className = 'sender';
+  sender.textContent = role === 'user' ? 'You' : role === 'error' ? 'Connection notice' : 'MediGuide';
   const bubble = document.createElement('div');
   bubble.className = 'bubble';
   bubble.textContent = text;
-
-  inner.appendChild(label);
-  inner.appendChild(bubble);
-  row.appendChild(inner);
-  msg.appendChild(row);
-  thread.appendChild(msg);
-  scrollToBottom();
-  return bubble;
-}
-
-function addTyping(){
-  const msg = document.createElement('div');
-  msg.className = 'msg assistant';
-  const row = document.createElement('div');
-  row.className = 'msg-row';
-  const inner = document.createElement('div');
-  const label = document.createElement('div');
-  label.className = 'role';
-  label.textContent = 'MediGuide';
-  const typing = document.createElement('div');
-  typing.className = 'typing';
-  typing.innerHTML = '<span></span><span></span><span></span>';
-  inner.appendChild(label);
-  inner.appendChild(typing);
-  row.appendChild(inner);
-  msg.appendChild(row);
-  thread.appendChild(msg);
-  scrollToBottom();
-  return msg;
-}
-
-async function askMediGuide(question){
-  history.push({ role: 'user', content: question });
-
-  const typingEl = addTyping();
-  sendBtn.disabled = true;
-
-  try{
-    const response = await fetch('/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages: history })
+  body.append(sender,bubble);
+  if(role === 'assistant'){
+    const tools = document.createElement('div');
+    tools.className = 'message-tools';
+    const copy = document.createElement('button');
+    copy.className = 'tiny-btn';
+    copy.type = 'button';
+    copy.textContent = 'Copy response';
+    copy.addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText(text); statusEl.textContent = 'Answer copied.'; }
+      catch { statusEl.textContent = 'Copy is unavailable in this browser.'; }
     });
-
-    const data = await response.json();
-
-    if(!response.ok){
-      throw new Error(data.error || 'Request failed');
-    }
-
-    const text = data.text || "I couldn't find a clear answer to that — could you rephrase it?";
-
-    history.push({ role: 'assistant', content: text });
-    typingEl.remove();
-    addMessage('assistant', text);
-  } catch (err){
-    typingEl.remove();
-    addMessage('error', "Something went wrong reaching MediGuide. Please try again.");
+    tools.append(copy);
+    body.append(tools);
+    lastAnswer = text;
+    copyLast.disabled = false;
+  }
+  item.append(avatar,body);
+  thread.append(item);
+  scrollToLatest();
+  return item;
+}
+function addTyping(){
+  const item = document.createElement('article');
+  item.className = 'message assistant';
+  const avatar = document.createElement('div');
+  avatar.className = 'avatar'; avatar.textContent = 'M';
+  const body = document.createElement('div'); body.className = 'message-body';
+  const sender = document.createElement('div'); sender.className = 'sender'; sender.textContent = 'MediGuide is thinking';
+  const dots = document.createElement('div'); dots.className = 'bubble typing';
+  for(let i=0;i<3;i++) dots.append(document.createElement('i'));
+  body.append(sender,dots); item.append(avatar,body); thread.append(item); scrollToLatest();
+  return item;
+}
+async function ask(question){
+  if(busy) return;
+  busy = true;
+  lastQuestion = question;
+  history.push({role:'user',content:question});
+  const typing = addTyping();
+  sendBtn.disabled = true;
+  statusEl.textContent = 'Connecting securely…';
+  try{
+    const response = await fetch('/api/chat',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({messages:history})
+    });
+    const data = await response.json().catch(()=>({}));
+    if(!response.ok) throw new Error(data.error || 'The request could not be completed.');
+    const answer = typeof data.text === 'string' ? data.text.trim() : '';
+    if(!answer) throw new Error('MediGuide received an empty answer. Please try again.');
+    history.push({role:'assistant',content:answer});
+    typing.remove();
+    addMessage('assistant',answer);
+    statusEl.textContent = '';
+  }catch(error){
+    typing.remove();
     history.pop();
-  } finally {
+    addMessage('error',error.message || 'Something went wrong. Please try again.');
+    const retry = document.createElement('button');
+    retry.type = 'button'; retry.className = 'tiny-btn'; retry.textContent = 'Try again';
+    retry.addEventListener('click',()=>{ retry.remove(); ask(lastQuestion); });
+    thread.lastElementChild.querySelector('.message-body').append(retry);
+    statusEl.textContent = 'Your question was not sent successfully.';
+  }finally{
+    busy = false;
     sendBtn.disabled = false;
+    input.focus();
   }
 }
-
-form.addEventListener('submit', (e) => {
-  e.preventDefault();
-  const q = input.value.trim();
-  if(!q) return;
-  addMessage('user', q);
-  input.value = '';
-  input.style.height = 'auto';
-  askMediGuide(q);
+form.addEventListener('submit',(event)=>{
+  event.preventDefault();
+  const question = input.value.trim();
+  if(!question || busy) return;
+  addMessage('user',question);
+  input.value=''; input.style.height='auto';
+  ask(question);
 });
-
-input.addEventListener('input', () => {
-  input.style.height = 'auto';
-  input.style.height = Math.min(input.scrollHeight, 140) + 'px';
+input.addEventListener('input',()=>{
+  input.style.height='auto';
+  input.style.height=Math.min(input.scrollHeight,130)+'px';
 });
-
-input.addEventListener('keydown', (e) => {
-  if(e.key === 'Enter' && !e.shiftKey){
-    e.preventDefault();
-    form.requestSubmit();
-  }
+input.addEventListener('keydown',(event)=>{
+  if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();form.requestSubmit();}
 });
-
-document.querySelectorAll('.chip').forEach(chip => {
-  chip.addEventListener('click', () => {
-    addMessage('user', chip.textContent);
-    askMediGuide(chip.textContent);
+document.querySelectorAll('[data-prompt]').forEach(button=>{
+  button.addEventListener('click',()=>{
+    if(busy)return;
+    const question=button.dataset.prompt;
+    addMessage('user',question);
+    ask(question);
   });
 });
+document.getElementById('newChat').addEventListener('click',()=>{
+  if(busy)return;
+  history=[];lastAnswer='';lastQuestion='';thread.replaceChildren();
+  welcome.classList.remove('hidden');hero.classList.remove('hidden');
+  statusEl.textContent='New conversation started.';
+  input.focus();
+});
+copyLast.addEventListener('click',async()=>{
+  if(!lastAnswer)return;
+  try{await navigator.clipboard.writeText(lastAnswer);statusEl.textContent='Latest answer copied.';}
+  catch{statusEl.textContent='Copy is unavailable in this browser.';}
+});
+copyLast.disabled=true;
+fetch('/api/health').then(r=>r.json()).then(data=>{
+  if(!data.aiConfigured) statusEl.textContent='AI setup is incomplete. The site owner needs to configure the API key in Render.';
+}).catch(()=>{statusEl.textContent='Could not check AI service status.';});
 </script>
-
-<footer>Created by Pratik Khadka</footer>
-
 </body>
 </html>
